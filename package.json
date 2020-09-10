@@ -1,0 +1,24 @@
+{
+  "name": "react-native-epson-epos-printer",
+  "version": "0.0.7",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "react-native",
+    "epson",
+    "epos",
+    "printer"
+  ],
+  "author": "Celso Agrazal",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Celggar/react-native-epson-epos-printer/issues"
+  },
+  "homepage": "https://github.com/Celggar/react-native-epson-epos-printer",
+  "peerDependencies": {
+    "react-native": "^0.41.2"
+  }
+}
