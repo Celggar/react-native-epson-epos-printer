@@ -42,6 +42,6 @@ repositories {
 }
 
 dependencies {
-    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation fileTree(dir: "libs", include: ["*.jar", '.so'])
     implementation 'com.facebook.react:react-native:+'
 }

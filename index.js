@@ -13,7 +13,10 @@ export default {
                 reject('No disponible para iOS aún');
             });
         } else {
-            return Print.printTest(ipOrMac);
+            return RNEpsonEposPrinter.printTest(ipOrMac);
         }
+    },
+    print(qty, ipOrMac, dataToPrint) {
+        return RNEpsonEposPrinter.print(qty, ipOrMac, dataToPrint);
     }
 };
