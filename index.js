@@ -76,14 +76,20 @@ export default {
     printTest(ipOrMac) {
         if (Platform.OS === 'ios') {
            return new Promise((resolve, reject) => {
-                reject('No disponible para iOS aún');
+                reject('Not available for iOS yet');
             });
         } else {
             return RNEpsonEposPrinter.printTest(ipOrMac);
         }
     },
     print(qty, ipOrMac, dataToPrint) {
-        return RNEpsonEposPrinter.print(qty, ipOrMac, dataToPrint);
+        if (Platform.OS === 'ios') {
+            return new Promise((resolve, reject) => {
+                reject('Not available for iOS yet');
+            });
+        } else {
+            return RNEpsonEposPrinter.print(qty, ipOrMac, dataToPrint);
+        }
     }
 };
 
