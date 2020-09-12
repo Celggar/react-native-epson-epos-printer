@@ -4,7 +4,7 @@
 [![npm version](https://img.shields.io/npm/v/react-native-epson-epos-printer.svg?style=flat-square)](https://www.npmjs.com/package/react-native-epson-epos-printer)
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](https://github.com/Celggar/react-native-epson-epos-printer/blob/master/LICENSE)
 [![npm downloads](https://img.shields.io/npm/dm/react-native-epson-epos-printer.svg?style=flat-square)](http://npm-stat.com/charts.html?package=react-native-epson-epos-printer)
-[![install size](https://packagephobia.now.sh/badge?p=react-native-epson-epos-printer)](https://packagephobia.now.sh/result?p=react-native-epson-epos-printer)
+[![install size](https://packagephobia.com/badge?p=react-native-epson-epos-printer)](https://packagephobia.com/result?p=react-native-epson-epos-printer)
 [![npm version](https://img.shields.io/twitter/follow/celggar.svg?label=Follow%20@celggar)](https://twitter.com/intent/follow?screen_name=celggar)
 
 ## 🚀 Installation
