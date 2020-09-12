@@ -1,0 +1,126 @@
+[
+  {
+    "image": "https://github.githubassets.com/images/modules/logos_page/Octocat.png"
+  },
+  {
+    "line": 1
+  },
+  {
+    "centered": "Celggar Company"
+  },
+  {
+    "centered": "RUC 777-136-113133  DV  02"
+  },
+  {
+    "centered": "Capellanía"
+  },
+  {
+    "centered": "Express line 236-5555"
+  },
+  {
+    "line": 2
+  },
+  {
+    "text": "RUC/CIP: C-8-330124"
+  },
+  {
+    "text": "SOCIAL: TODD MULLINS - 8733212"
+  },
+  {
+    "line": 2
+  },
+  {
+    "text": "INVOICE: 0-00000002401\nDOCUMENTO ERP: ACM1PT\nSUCURSAL: Capellanía - Principal\nSELLER: Celggar WEB\n NAME: Celggar"
+  },
+  {
+    "line": 3
+  },
+  {
+    "centered": "FECHA: 11/09/2020    HORA: 8:47"
+  },
+  {
+    "barcode": "0-0000039242",
+    "type": 9
+  },
+  {
+    "text": "COMMAND"
+  },
+  {
+    "dotted": 2
+  },
+  {
+    "text": "2.0 x $4.99"
+  },
+  {
+    "text": "C000056297 Abono orgánico humus 40lb $9.98 1.0 x 10.99"
+  },
+  {
+    "text": "C000056298 Rodillo para pintar $9.98 1.0 x 10.99"
+  },
+  {
+    "text": "C000056299 Leche 40lb $9.98 1.0 x 10.99"
+  },
+  {
+    "text": "C000007394 COSTO DE ENVÍO (ACARREO) $7.95"
+  },
+  {
+    "left": "SUBTOTAL:",
+    "right": "$109.10"
+  },
+  {
+    "left": "DISCOUNT:",
+    "right": "$0.0"
+  },
+  {
+    "dotted": 1
+  },
+  {
+    "left": "SUBTOTAL (again):",
+    "right": "$109.10"
+  },
+  {
+    "left": "EXEMPT:",
+    "right": "$0.00"
+  },
+  {
+    "left": "GRAVABLE:",
+    "right": "$109.10"
+  },
+  {
+    "left": "I.T.B.M.S (7%):",
+    "right": "$5.38"
+  },
+  {
+    "left": "TOTAL:",
+    "right": "$114.48"
+  },
+  {
+    "left": "PUNTOS C:",
+    "right": "$7.83"
+  },
+  {
+    "left": "CAMBIO:",
+    "right": "$0"
+  },
+  {
+    "dotted": 2
+  },
+  {
+    "text": "DELIVERY ADDRESS"
+  },
+  {
+    "dotted": 1
+  },
+  {
+    "text": "Panamá, Coclé, Capellanía, Lex Luthor Tower, Apto ACM1PT 01A Calle Justice League - cerca de la cueva de Batman"
+  },
+  {
+    "text": "COMMENTS: NO COMMENTS"
+  },
+  {
+    "text": "EMAIL: lobezno33@jleague.com"
+  },
+  {
+    "text": "PHONE: 236-5555"
+  }
+]

@@ -1,10 +1,16 @@
 
 package com.celggar.epos;
 
+import android.os.Build;
+
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.Promise;
+
+import java.io.InputStream;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 public class RNEpsonEposPrinterModule extends ReactContextBaseJavaModule {
 
@@ -44,12 +50,12 @@ public class RNEpsonEposPrinterModule extends ReactContextBaseJavaModule {
             }
         });
         printerHelper.setPrinterId(ipOrMac);
-        boolean successful = printerHelper.parseData(dataToPrint);
-        if (!successful) {
-            String message = "No se puede conectar a la impresora (77)";
-            promise.reject(PRINTER_ERROR, message);
+        String errorMessage = printerHelper.parseData(dataToPrint);
+        if (errorMessage != null) {
+            promise.reject(PRINTER_ERROR, errorMessage);
+        } else {
+            printerHelper.runPrintReceiptSequence(qty);
         }
-        printerHelper.executePrint(qty);
     }
 
     @ReactMethod
@@ -70,5 +76,26 @@ public class RNEpsonEposPrinterModule extends ReactContextBaseJavaModule {
         });
         printerHelper.setPrinterId(ipOrMac);
         printerHelper.runPrintReceiptSequence(true, 1);
+    }
+
+    private String getTestPayload() {
+        String json = null;
+        try {
+            InputStream is = getCurrentActivity().getAssets().open("printer_payload" + ".json");
+            int size = is.available();
+            byte[] buffer = new byte[size];
+            is.read(buffer);
+            is.close();
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                json = new String(buffer, StandardCharsets.UTF_8);
+            } else {
+                json = new String(buffer, Charset.forName("UTF-8"));
+            }
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            return null;
+        }
+        return json;
     }
 }

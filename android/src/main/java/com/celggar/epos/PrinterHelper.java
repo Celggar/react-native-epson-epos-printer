@@ -4,45 +4,40 @@ import android.app.Activity;
 import android.graphics.Bitmap;
 import android.os.AsyncTask;
 
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.request.FutureTarget;
 import com.epson.epos2.Epos2CallbackCode;
 import com.epson.epos2.Epos2Exception;
 import com.epson.epos2.printer.Printer;
 import com.epson.epos2.printer.PrinterStatusInfo;
 import com.epson.epos2.printer.ReceiveListener;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
-import org.json.JSONObject;
-
-import java.util.Calendar;
 import java.util.Locale;
 
 
 /**
- * Created by celso on 2019-08-05
+ * Created by Celso on 2019-08-05
  */
 public class PrinterHelper implements ReceiveListener {
     private static final String TAG = "PrinterHelper";
-    public static final int REQUEST_CODE = 110;
-    public static String STATUS_CODE = "com.hypernovalabs.aludrasales.STATUS_CODE";
-    public static String ERROR_MESSAGE = "com.hypernovalabs.aludrasales.ERROR_MESSAGE";
     private static Printer mPrinter = null;
     private Activity mContext;
     private String mPrinterId = null;
-    private InvoiceObj mInvoice = null;
     private String mMessage, mWarningMsg;
-    private JSONObject mParsedData = null;
-    private Bitmap mLogo, mQRCode;
+    private JsonArray mParsedData = null;
     private OnPrinterFinishListener mCallback;
     private PrinterResponse mResponse;
-    private int mTimesToPrint = 1, mPrinterCounter = 0, mImageCounter = 0;
+    private int mTimesToPrint = 1, mPrinterCounter = 0;
     private boolean mIsATest = false;
 
     public PrinterHelper(Activity ctx) {
         mContext = ctx;
         mResponse = new PrinterResponse();
         mPrinterCounter = 0;
-        mImageCounter = 0;
-        mLogo = null;
-        mQRCode = null;
     }
 
     public void setOnPrinterFinishListener(OnPrinterFinishListener listener) {
@@ -62,10 +57,6 @@ public class PrinterHelper implements ReceiveListener {
             }
         }
         mPrinterId = formatId;
-    }
-
-    public void setLogo(Bitmap logo) {
-        mLogo = logo;
     }
 
     private String getEposExceptionMessage(int state) {
@@ -238,120 +229,12 @@ public class PrinterHelper implements ReceiveListener {
         return return_text;
     }
 
-    public boolean parseData(String jsonObject) {
+    public String parseData(String jsonArray) {
         try {
-            mInvoice = new InvoiceObj();
-            JSONObject data = new JSONObject(jsonObject);
-            mParsedData = data;
-            if (!data.isNull("cufe")) {
-                mInvoice.documentName = "FACTURA";
-                mInvoice.cufe = data.isNull("cufe") ? "" : data.getString("cufe");
-                mInvoice.qrCodeImage = data.isNull("qrcodeimage") ? "" : data.getString("qrcodeimage");
-                mInvoice.urlcufe = data.isNull("urlcufe") ? "" : data.getString("urlcufe");
-                JSONObject aludraData = data.getJSONObject("aludradata");
-                JSONObject salesDocInfo = aludraData.getJSONObject("Data").getJSONObject("SalesDocumentInfo");
-                mInvoice.setSalesDoc(salesDocInfo);
-                JSONObject posResponse = data.isNull("PosResponse") ? null : data.getJSONObject("PosResponse");
-                if (posResponse != null) {
-                    mInvoice.issuerName = posResponse.isNull("issuer_name") ? "" : posResponse.getString("issuer_name");
-                    mInvoice.paymentType = posResponse.isNull("paymentType") ? "" : posResponse.getString("paymentType");
-                    mInvoice.authCode = posResponse.isNull("authorizationCode") ? "" : posResponse.getString("authorizationCode");
-                    mInvoice.cardNumber = posResponse.isNull("pan") ? null : posResponse.getString("pan");
-                }
-            } else {
-                mInvoice.documentName = "NOTA DE CRÉDITO";
-                JSONObject dgiResponse = data.getJSONObject("DgiResponse");
-                mInvoice.cufe = dgiResponse.isNull("cufe") ? "" : dgiResponse.getString("cufe");
-                mInvoice.qrCodeImage = dgiResponse.isNull("qrcodeImage") ? "" : dgiResponse.getString("qrcodeImage");
-                mInvoice.urlcufe = dgiResponse.isNull("urlCufe") ? "" : dgiResponse.getString("urlCufe");
-                mInvoice.setSalesDoc(data);
-            }
-            return true;
-        } catch (Exception e) {
-            return false;
-        }
-    }
-
-    public void executePrint(Integer qty) {
-
-        if (mInvoice.companyLogo == null && mInvoice.qrCodeImage == null) {
-            runPrintReceiptSequence(qty);
-        } else {
-            if (mInvoice.companyLogo != null) {
-                /*Glide.with(mContext)
-                        .asBitmap()
-                        .load(getLogo())
-                        .listener(new RequestListener<Bitmap>() {
-                                      @Override
-                                      public boolean onLoadFailed(@Nullable GlideException e, Object o, Target<Bitmap> target, boolean b) {
-                                          if (mImageCounter > 0) {
-                                              runPrintReceiptSequence(qty);
-                                          }
-                                          mImageCounter++;
-                                          return true;
-                                      }
-
-                                      @Override
-                                      public boolean onResourceReady(Bitmap bitmap, Object o, Target<Bitmap> target, DataSource dataSource, boolean b) {
-                                          mLogo = bitmap;
-                                          if (mImageCounter > 0) {
-                                              runPrintReceiptSequence(qty);
-                                          }
-                                          mImageCounter++;
-                                          return true;
-                                      }
-                                  }
-                        ).submit(125, 125);
-                String image = mInvoice.qrCodeImage != null ? mInvoice.qrCodeImage : "";*/
-            } else {
-                mImageCounter++;
-            }
-
-            if (mInvoice.qrCodeImage != null) {
-                /*Glide.with(mContext)
-                        .asBitmap()
-                        .load(mInvoice.qrCodeImage)
-                        .listener(new RequestListener<Bitmap>() {
-                                      @Override
-                                      public boolean onLoadFailed(@Nullable GlideException e, Object o, Target<Bitmap> target, boolean b) {
-                                          if (mImageCounter > 0) {
-                                              runPrintReceiptSequence(qty);
-                                          }
-                                          mImageCounter++;
-                                          return true;
-                                      }
-
-                                      @Override
-                                      public boolean onResourceReady(Bitmap bitmap, Object o, Target<Bitmap> target, DataSource dataSource, boolean b) {
-                                          mQRCode = bitmap;
-                                          if (mImageCounter > 0) {
-                                              runPrintReceiptSequence(qty);
-                                          }
-                                          mImageCounter++;
-                                          return true;
-                                      }
-                                  }
-                        ).submit(500, 500);*/
-            } else {
-                mImageCounter++;
-            }
-        }
-
-    }
-
-    public String getLogo() {
-        if (mInvoice != null && mInvoice.companyLogo != null && !mInvoice.companyLogo.equals("")) {
-            String image;
-            if (mInvoice.companyLogo.contains("novey")) {
-                image = "https://aludrastoragedev.blob.core.windows.net/aludra-files/Pos/ml11_novey_logo.png";
-            } else if (mInvoice.companyLogo.contains("cochez")) {
-                image = "https://aludrastoragedev.blob.core.windows.net/aludra-files/Pos/ml11_cochez_logo.png";
-            } else {
-                image = mInvoice.companyLogo;
-            }
-            return image;
-        } else {
+            mParsedData = JsonParser.parseString(jsonArray).getAsJsonArray();
             return null;
+        } catch (Exception e) {
+            return e.getMessage();
         }
     }
 
@@ -415,253 +298,136 @@ public class PrinterHelper implements ReceiveListener {
         }
     }
 
-    public void setupReceiptData() {
-        int year = Calendar.getInstance().get(Calendar.YEAR);
-        //Bitmap QRbitmap = getQR();
+    String[] mCommands = {"text", "centered", "line", "dotted", "left", "right", "barcode", "image"};
+    int mAlignment = -1;
 
-        //Bitmap logoData = BitmapFactory.decodeResource(getResources(), R.drawable.mdl11_noveylogo);
-        StringBuilder textData = new StringBuilder();
-
+    public void customReceiptData() {
         try {
-            mPrinter.addTextAlign(Printer.ALIGN_CENTER);
-            if (mLogo != null) {
-                mPrinter.addImage(mLogo, 0, 0,
-                        mLogo.getWidth(),
-                        mLogo.getHeight(),
-                        Printer.COLOR_1,
-                        Printer.MODE_MONO,
-                        Printer.HALFTONE_DITHER,
-                        Printer.PARAM_DEFAULT,
-                        Printer.COMPRESS_AUTO);
-            }
+            for (int i = 0; i < mParsedData.size(); i++) {
+                JsonObject obj = mParsedData.get(i).getAsJsonObject();
+                for (String command : mCommands) {
+                    JsonElement value = obj.get(command);
+                    if (value != null) {
+                        StringBuilder text = new StringBuilder();
+                        switch (command) {
+                            case "text":
+                                alignTo(Printer.ALIGN_LEFT);
+                                text.append(value.getAsString()).append("\n");
+                                break;
 
-            mPrinter.addFeedLine(0);
-            textData.append("RUC: ").append(mInvoice.companyNumber).append(" DV ");
-            if (mInvoice.companyDV != null && !mInvoice.companyDV.equals("")) {
-                textData.append(mInvoice.companyDV).append("\n");
-            } else {
-                textData.append("04\n");
-            }
-            textData.append(mInvoice.companyName).append("\n");
-            textData.append(mInvoice.warehouseDescription).append("\n");
-            //textData.append("Apdo. 3420 Zona 4 Panama, Panama\n");
-            if (mInvoice.buildingName != null && !mInvoice.buildingName.equals("") && !mInvoice.buildingName.equals("null")) {
-                textData.append(mInvoice.buildingName);
-                if (mInvoice.hoodName != null && !mInvoice.hoodName.equals("") && !mInvoice.hoodName.equals("null")) {
-                    textData.append(", ").append(mInvoice.hoodName);
-                    if (mInvoice.buildingType != null && !mInvoice.buildingType.equals("") && !mInvoice.buildingType.equals("null")) {
-                        textData.append(". ").append(mInvoice.buildingType);
-                        if (mInvoice.floorName != null && !mInvoice.floorName.equals("") && !mInvoice.floorName.equals("null")) {
-                            textData.append(", piso ").append(mInvoice.floorName);
-                            if (mInvoice.buildingProvince != null && !mInvoice.buildingProvince.equals("") && !mInvoice.buildingProvince.equals("null")) {
-                                textData.append(". ").append(mInvoice.buildingProvince);
-                                if (mInvoice.buildingDistrict != null && !mInvoice.buildingDistrict.equals("") && !mInvoice.buildingDistrict.equals("null")) {
-                                    textData.append(", ").append(mInvoice.buildingDistrict);
+                            case "centered":
+                                alignTo(Printer.ALIGN_CENTER);
+                                text.append(value.getAsString()).append("\n");
+                                break;
+
+                            case "line":
+                                int lineQty = value.getAsInt();
+                                for (int j = 0; j < lineQty; j++) {
+                                    text.append("\n");
                                 }
-                            }
+                                break;
+
+                            case "dotted":
+                                alignTo(Printer.ALIGN_CENTER);
+                                int dottedQty = value.getAsInt();
+                                for (int j = 0; j < dottedQty; j++) {
+                                    text.append("------------------------------").append("\n");
+                                }
+                                break;
+
+                            case "right":
+                            case "left":
+                                boolean isLeft = command.equals("left");
+                                JsonElement jNextVal = obj.get(isLeft ? "right" : "left");
+                                if (jNextVal != null) {
+                                    text.append(padLine(value.getAsString(), jNextVal.getAsString(), 42));
+                                } else {
+                                    mPrinter.addFeedLine(0);
+                                    alignTo(isLeft ? Printer.ALIGN_LEFT : Printer.ALIGN_RIGHT);
+                                    mPrinter.addText(value.getAsString());
+                                }
+                                text.append("\n");
+                                break;
+                            case "barcode":
+                                alignTo(Printer.ALIGN_CENTER);
+                                JsonElement jType = obj.get("type");
+                                int type = jType == null ? Printer.BARCODE_CODE93 : jType.getAsInt();
+                                if (type > 15 || type < 0) {
+                                    type = Printer.BARCODE_CODE93;
+                                }
+                                mPrinter.addTextAlign(Printer.ALIGN_CENTER);
+                                mPrinter.addBarcode(
+                                        value.getAsString(),
+                                        type,
+                                        Printer.HRI_BELOW,
+                                        Printer.FONT_A,
+                                        2,
+                                        100);
+                                text.append("\n");
+                                break;
+
+                            case "image":
+                                alignTo(Printer.ALIGN_CENTER);
+                                //187, 70
+                                FutureTarget<Bitmap> futureBitmap = Glide.with(mContext)
+                                        .asBitmap()
+                                        .override(374, 70)
+                                        .load(value.getAsString())
+                                        .submit();
+                                try {
+                                    Bitmap bitmap = futureBitmap.get();
+                                    mPrinter.addImage(bitmap, 0, 0,
+                                            bitmap.getWidth(),
+                                            bitmap.getHeight(),
+                                            Printer.COLOR_1,
+                                            Printer.MODE_MONO,
+                                            Printer.HALFTONE_DITHER,
+                                            Printer.PARAM_DEFAULT,
+                                            Printer.COMPRESS_AUTO);
+                                } catch (Exception e) {
+                                    text.append(e.getMessage());
+                                }
+                                text.append("\n");
+                                break;
+
                         }
+                        mPrinter.addText(text.toString());
+                        break;
                     }
                 }
             }
-
-            mPrinter.addText(textData.toString());
-            textData.delete(0, textData.length());
-            mPrinter.addFeedLine(1);
-            mPrinter.addTextAlign(Printer.ALIGN_LEFT);
-
-            if (mInvoice.cip != null && !mInvoice.cip.equals("")) {
-                textData.append("RUC/CIP: ").append(mInvoice.cip).append("\n");
-            }
-
-            textData.append("RAZON SOCIAL: ").append(mInvoice.customerFullName).append("\n");
-            textData.append("NO. ").append( /*companyDV +*/ mInvoice.documentNumber).append("\n");
-            textData.append("SUCURSAL: ").append(mInvoice.warehouseDescription).append("\n");
-            textData.append("Vendedor: ").append(mInvoice.salesAgentNumberId).append(" ").append(mInvoice.salesAgentFullName).append("\n");
-            textData.append("Cajero(a): ").append(mInvoice.salesAgentFullName).append("\n");
-            if (mInvoice.comment != null) {
-                textData.append("Comentario: ").append(mInvoice.comment).append("\n");
-            }
-            mPrinter.addText(textData.toString());
-            textData.delete(0, textData.length());
-            mPrinter.addFeedLine(0);
-            mPrinter.addTextAlign(Printer.ALIGN_CENTER);
-            textData.append("-------------------------------------\n");
-            textData.append("COMPROBANTE AUXILIAR DE \n" +
-                    "FACTURACION ELECTRONICA\n\n");
-
-            mPrinter.addFeedLine(2);
-
-            textData.append("FECHA: " + mInvoice.simpleDate + "    HORA: " + mInvoice.hour + "\n");
-            mPrinter.addText(textData.toString());
-            textData.delete(0, textData.length());
-            mPrinter.addTextAlign(Printer.ALIGN_CENTER);
-            mPrinter.addBarcode(
-                    mInvoice.documentNumber,
-                    Printer.BARCODE_CODE93,
-                    Printer.HRI_BELOW,
-                    Printer.FONT_A,
-                    2,
-                    100
-            );
-
-            textData.append("-------------------------------------\n");
-
-            mPrinter.addText(textData.toString());
-            textData.delete(0, textData.length());
-            mPrinter.addFeedLine(0);
-            mPrinter.addTextAlign(Printer.ALIGN_LEFT);
-            textData.append(mInvoice.documentName).append(": ").append(mInvoice.documentNumber).append("\n");
-            textData.append("FECHA: ").append(mInvoice.simpleDate);
-
-            mPrinter.addText(textData.toString());
-            textData.delete(0, textData.length());
-            mPrinter.addFeedLine(0);
-            //mPrinter.addTextAlign(Printer.ALIGN_RIGHT);
-            textData.append("HORA: ").append(mInvoice.hour);
-
-            mPrinter.addText(textData.toString());
-            textData.delete(0, textData.length());
-            mPrinter.addFeedLine(1);
-            mPrinter.addTextAlign(Printer.ALIGN_CENTER);
-            textData.append("-------------------------------------\n");
-            textData.append(" V E N T A \n");
-            textData.append("-------------------------------------");
-
-            mPrinter.addText(textData.toString());
-            textData.delete(0, textData.length());
-            mPrinter.addFeedLine(0);
-            mPrinter.addTextAlign(Printer.ALIGN_LEFT);
-
-            //Recorrer los productos comprados
-            for (LineObj line : mInvoice.lines) {
-                mPrinter.addText(textData.toString());
-                textData.delete(0, textData.length());
-                mPrinter.addFeedLine(0);
-                mPrinter.addTextAlign(Printer.ALIGN_LEFT);
-
-                textData.append(line.quantity).append("x B/.").append(line.price).append("\n");
-                if (line.fulfillmentPlanId != null
-                        && !line.fulfillmentPlanId.equalsIgnoreCase(GeneralHelper.FULFILLMENT_PDV_PLAN_ID)
-                        && line.warehouseName != null
-                        && line.fulfillmentPlanDescription != null) {
-                    textData.append("\n[")
-                            .append(line.fulfillmentPlanDescription.toLowerCase()).append("/")
-                            .append(line.warehouseName.toLowerCase())
-                            .append("]\n");
-                }
-                textData.append(line.sku).append(" ").append(line.productName).append(" ");
-
-                mPrinter.addText(textData.toString());
-                textData.delete(0, textData.length());
-                mPrinter.addFeedLine(0);
-                mPrinter.addTextAlign(Printer.ALIGN_RIGHT);
-                textData.append("B/. ").append(line.amount).append("\n");
-            }
-
-            mPrinter.addText(textData.toString());
-            textData.delete(0, textData.length());
-            mPrinter.addFeedLine(0);
-            mPrinter.addTextAlign(Printer.ALIGN_CENTER);
-            textData.append("-------------------------------------\n");
-
-
-            mPrinter.addText(textData.toString());
-            textData.delete(0, textData.length());
-            mPrinter.addFeedLine(0);
-            mPrinter.addTextAlign(Printer.ALIGN_LEFT);
-            textData.append("SUBTOTAL: ");
-
-            mPrinter.addText(textData.toString());
-            textData.delete(0, textData.length());
-            mPrinter.addFeedLine(0);
-            mPrinter.addTextAlign(Printer.ALIGN_RIGHT);
-            textData.append("B/.").append(mInvoice.subTotal);
-
-            mPrinter.addText(textData.toString());
-            textData.delete(0, textData.length());
-            mPrinter.addFeedLine(0);
-            mPrinter.addTextAlign(Printer.ALIGN_LEFT);
-            textData.append("ITBMS: ");
-
-            mPrinter.addText(textData.toString());
-            textData.delete(0, textData.length());
-            mPrinter.addFeedLine(0);
-            mPrinter.addTextAlign(Printer.ALIGN_RIGHT);
-            textData.append("B/.").append(mInvoice.tax).append("\n");
-
-            mPrinter.addText(textData.toString());
-            textData.delete(0, textData.length());
-            mPrinter.addFeedLine(1);
-            mPrinter.addTextAlign(Printer.ALIGN_CENTER);
-            textData.append("-------------------------------------");
-
-            mPrinter.addText(textData.toString());
-            textData.delete(0, textData.length());
-            mPrinter.addFeedLine(0);
-            mPrinter.addTextAlign(Printer.ALIGN_LEFT);
-            textData.append("TOTAL: ");
-
-            mPrinter.addText(textData.toString());
-            textData.delete(0, textData.length());
-            mPrinter.addFeedLine(0);
-            mPrinter.addTextAlign(Printer.ALIGN_RIGHT);
-            textData.append("B/.").append(mInvoice.total).append("\n");
-
-            mPrinter.addText(textData.toString());
-            textData.delete(0, textData.length());
-            mPrinter.addFeedLine(0);
-            mPrinter.addTextAlign(Printer.ALIGN_LEFT);
-
-            //textData.append(mInvoice.paymentType).append("\n");
-            String issuerName = "";
-            if (mInvoice.issuerName != null) {
-                if (mInvoice.issuerName.equals("")) {
-                    issuerName = "Clave";
-                } else {
-                    issuerName = mInvoice.issuerName;
-                }
-            }
-            textData.append(issuerName).append("\n");
-            if (mInvoice.cardNumber != null) {
-                textData.append(mInvoice.cardNumber).append("\n");
-            }
-            textData.append("AUTH: ").append(mInvoice.authCode).append("\n");
-
-            textData.append("\n\nRecibido: \n");
-            textData.append("_____________________________________ \n\n");
-
-            textData.append("Nombre: ____________________\n\n");
-            textData.append("Cedula: ____________________\n\n");
-
-            mPrinter.addText(textData.toString());
-            textData.delete(0, textData.length());
-            mPrinter.addFeedLine(0);
-            mPrinter.addTextAlign(Printer.ALIGN_CENTER);
-
-            textData.append("GRACIAS POR SU COMPRA\n");
-            textData.append("Consulte por la clave de acceso su factura en:\n" + "http://dgi-fep.mef.gob.pa/Consultas\n" + "Usando el CUFE\n").append(mInvoice.cufe).append("\n");
-
-            mPrinter.addText(textData.toString());
-            textData.delete(0, textData.length());
-            mPrinter.addFeedLine(0);
-
-            if (mQRCode != null) {
-                mPrinter.addImage(mQRCode, 0, 0,
-                        mQRCode.getWidth(),
-                        mQRCode.getHeight(),
-                        Printer.COLOR_1,
-                        Printer.MODE_GRAY16,
-                        Printer.HALFTONE_DITHER,
-                        Printer.PARAM_DEFAULT,
-                        Printer.COMPRESS_AUTO);
-            }
-
             mPrinter.addCut(Printer.CUT_FEED);
 
         } catch (Exception e) {
-            //
             mMessage = getException(e, "ReceiptData");
         }
+    }
+
+    private void alignTo(int alignment) throws Epos2Exception {
+        if (mAlignment != alignment) {
+            mAlignment = alignment;
+            mPrinter.addTextAlign(alignment);
+        }
+    }
+
+    /**
+     * utility: pads two strings to columns per line
+     */
+    private String padLine(String partOne, String partTwo, int columnsPerLine) {
+        String concat;
+        if (partOne.length() + partTwo.length() > columnsPerLine) {
+            concat = partOne + " " + partTwo;
+        } else {
+            int padding = columnsPerLine - (partOne.length() + partTwo.length());
+            StringBuilder builder = new StringBuilder();
+            builder.append(partOne);
+            for (int i = 0; i < padding; i++) {
+                builder.append(" ");
+            }
+            builder.append(partTwo);
+            concat = builder.toString();
+        }
+        return concat;
     }
 
     private void sendException(Exception e, String method) {
@@ -758,38 +524,19 @@ public class PrinterHelper implements ReceiveListener {
         } catch (Exception e) {
             mMessage = getException(e, "connect");
             return false;
-            /*try {
-                runPrintReceiptSequence(mIsATest, mTimesToPrint);
-                isBeginTransaction = false;
-                mPrinter.connect(mPrinterId, Printer.PARAM_DEFAULT);
-            } catch (Epos2Exception e1) {
-                sendException(e, "connect");
-                return false;
-            }*/
         }
 
         try {
             mPrinter.beginTransaction();
-            //isBeginTransaction = true;
         } catch (Exception e) {
             mMessage = getException(e, "beginTransaction");
             try {
                 mPrinter.disconnect();
             } catch (Epos2Exception e1) {
-                // Do nothing
                 return false;
             }
             return false;
         }
-
-        /*if (!isBeginTransaction) {
-            try {
-                mPrinter.disconnect();
-            } catch (Epos2Exception e) {
-                // Do nothing
-                return false;
-            }
-        }*/
         return true;
     }
 
@@ -826,11 +573,8 @@ public class PrinterHelper implements ReceiveListener {
         if (mPrinter == null) {
             return;
         }
-
         mPrinter.clearCommandBuffer();
-
         mPrinter.setReceiveEventListener(null);
-
         mPrinter = null;
     }
 
@@ -914,7 +658,8 @@ public class PrinterHelper implements ReceiveListener {
                             createTestReceiptData();
                             receiptCreated = mMessage == null;
                         } else {
-                            setupReceiptData();
+                            //setupReceiptData();
+                            customReceiptData();
                             receiptCreated = mMessage == null;
                         }
                     } else if (mIsATest) {
