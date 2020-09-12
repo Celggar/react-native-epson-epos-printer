@@ -34,7 +34,7 @@ Printer.print(1, '50:57:9C:57:7B:M1', examplePayload)
 
 | Key | Type | Description |
 |---|---|---|
-|**`image`**|`url`|link to download the image.|
+|**`image`**|`url`|link to download the image. Alternatively, the `size` tag can be used to indicate the size of the image, by default the size is 187|
 |**`line`**|`number`|specifies the number of lines to skip. You can also use the text tag with new lines.|
 |**`dotted`**|`number`|specifies the number of centered dotted lines. You can also use the centered tag with "------------------------------".|
 |**`centered`**|`string`|centered text.|

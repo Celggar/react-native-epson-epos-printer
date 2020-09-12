@@ -368,10 +368,12 @@ public class PrinterHelper implements ReceiveListener {
 
                             case "image":
                                 alignTo(Printer.ALIGN_CENTER);
+                                JsonElement jSize = obj.get("size");
+                                int size = jSize == null ? 187 : jSize.getAsInt();
                                 //187, 70
                                 FutureTarget<Bitmap> futureBitmap = Glide.with(mContext)
                                         .asBitmap()
-                                        .override(374, 70)
+                                        .override(size, size)
                                         .load(value.getAsString())
                                         .submit();
                                 try {
