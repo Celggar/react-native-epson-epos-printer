@@ -17,7 +17,9 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import java.util.Locale;
-
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.common.BitMatrix;
+import com.google.zxing.qrcode.QRCodeWriter;
 
 /**
  * Created by Celso on 2019-08-05
@@ -33,6 +35,8 @@ public class PrinterHelper implements ReceiveListener {
     private PrinterResponse mResponse;
     private int mTimesToPrint = 1, mPrinterCounter = 0;
     private boolean mIsATest = false;
+    private int mPrinterSeries = 0;
+    private int mTextLanguage = 0;
 
     public PrinterHelper(Activity ctx) {
         mContext = ctx;
@@ -44,22 +48,33 @@ public class PrinterHelper implements ReceiveListener {
         mCallback = listener;
     }
 
+    public void setPrinterClass(int printerSeries, int textLanguage){
+        mPrinterSeries = printerSeries;
+        mTextLanguage = textLanguage;
+    }
+
     /**
      * Printer IP or Mac Address
      *
-     * @param ipOrMac IP or MAC Address
+     * @param connectionString USB path, IP or MAC Address
      */
-    public void setPrinterId(String ipOrMac) {
+    public void setPrinterId(String connectionString) {
         String formatId = null;
-        if (ipOrMac != null) {
-            if (!ipOrMac.contains("TCP:")) {
-                formatId = "TCP:" + ipOrMac;
+        if (connectionString != null) {
+            if (connectionString.contains("TCP:")) {
+                formatId = connectionString;
+            }else if (connectionString.contains("USB:")){
+                formatId = connectionString;
+            }else if (connectionString.contains("/dev")){
+                formatId = "USB:" + connectionString;
+            }else {
+                formatId = "TCP:" + connectionString;
             }
         }
         mPrinterId = formatId;
     }
 
-    private String getEposExceptionMessage(int state) {
+    static String getEposExceptionMessage(int state) {
         String return_text = "";
         switch (state) {
             case Epos2Exception.ERR_PARAM:
@@ -254,7 +269,7 @@ public class PrinterHelper implements ReceiveListener {
 
     public boolean initializeObject() {
         try {
-            mPrinter = new Printer(Printer.TM_T88, Printer.MODEL_ANK, mContext);
+            mPrinter = new Printer(mPrinterSeries, Printer.MODEL_ANK, mContext);
             mPrinter.setReceiveEventListener(this);
         } catch (Exception e) {
             //
@@ -298,25 +313,79 @@ public class PrinterHelper implements ReceiveListener {
         }
     }
 
-    String[] mCommands = {"text", "centered", "line", "dotted", "left", "right", "barcode", "image"};
+    String[] mCommands = {"text", "line", "dotted", "image", "barcode", "qrcode", "centered", "left", "right"};
     int mAlignment = -1;
-
     public void customReceiptData() {
         try {
+            mPrinter.addTextLang(mTextLanguage);
             for (int i = 0; i < mParsedData.size(); i++) {
                 JsonObject obj = mParsedData.get(i).getAsJsonObject();
                 for (String command : mCommands) {
                     JsonElement value = obj.get(command);
                     if (value != null) {
                         StringBuilder text = new StringBuilder();
+                        // setting align for text, image, barcode, qrcode
+                        switch((obj.get("align") != null ? obj.get("align").getAsString() : "left")){
+                            case "center":
+                                alignTo(Printer.ALIGN_CENTER);
+                                break;
+                            case "right":
+                                alignTo(Printer.ALIGN_RIGHT);
+                                break;
+                            case "left":
+                            default:
+                                alignTo(Printer.ALIGN_LEFT);
+                                break;
+                        }
+
+                        // smooth of text(include of centered, right, left)
+                        int useSmooth = obj.has("smooth") ? (obj.get("smooth").getAsBoolean() ? Printer.TRUE : Printer.FALSE) : Printer.FALSE;
+                        mPrinter.addTextSmooth(useSmooth);
+
+                        // bold of text(include of centered, right, left)
+                        int useBold = obj.has("bold") ? (obj.get("bold").getAsBoolean() ? Printer.TRUE : Printer.FALSE) : Printer.FALSE;
+                        int useUnderscore = obj.has("underscore") ? (obj.get("underscore").getAsBoolean() ? Printer.TRUE : Printer.FALSE) : Printer.FALSE;
+                        mPrinter.addTextStyle(Printer.FALSE, useUnderscore, useBold, Printer.COLOR_1);
+
+                        int defaultWidth = command.equals("barcode") ? 2 : 1;
+                        int defaultHeight = command.equals("barcode") ? 50 : 1;
+                        int width = obj.has("width") ? obj.get("width").getAsInt() : defaultWidth;
+                        int height = obj.has("height") ? obj.get("height").getAsInt() : defaultHeight;
+                        if (command.equals("text") && (width > 15 || width < 0)) { width = 1; }
+                        if (command.equals("text") && (height > 15 || height < 0)) { height = 1; }
+                        mPrinter.addTextSize(width, height);
+                        if (command.equals("barcode") && (width > 6 || width < 2)) { width = 2; }
+                        if (command.equals("barcode") && (height > 255 || height < 1)) { height = 50; }
+                        
+                        // image & qrcod
+                        int size = !obj.has("size") ? 187 : obj.get("size").getAsInt();
+                        JsonElement jShift = obj.get("shift");
+                        int shift = jShift == null ? 20 : jShift.getAsInt();
+
+                        // HRI of barcode, Human Readable Interpretation
+                        int HRI = Printer.HRI_NONE;
+                        switch((obj.get("HRI") != null ? obj.get("HRI").getAsString() : "HRI_NONE")){
+                            case "HRI_NONE":
+                                HRI = Printer.HRI_NONE;
+                                break;
+                            case "HRI_ABOVE":
+                                HRI = Printer.HRI_ABOVE;
+                                break;
+                            case "HRI_BELOW":
+                                HRI = Printer.HRI_BELOW;
+                                break;
+                            case "HRI_BOTH":
+                                HRI = Printer.HRI_BOTH;
+                        }
+
+                        // type of barcode
+                        JsonElement jType = obj.get("type");
+                        int type = jType == null ? Printer.BARCODE_CODE93 : jType.getAsInt();
+                        if (type > 15 || type < 0) {
+                            type = Printer.BARCODE_CODE93;
+                        }
                         switch (command) {
                             case "text":
-                                alignTo(Printer.ALIGN_LEFT);
-                                text.append(value.getAsString()).append("\n");
-                                break;
-
-                            case "centered":
-                                alignTo(Printer.ALIGN_CENTER);
                                 text.append(value.getAsString()).append("\n");
                                 break;
 
@@ -329,47 +398,18 @@ public class PrinterHelper implements ReceiveListener {
 
                             case "dotted":
                                 alignTo(Printer.ALIGN_CENTER);
+                                
                                 int dottedQty = value.getAsInt();
+                                int dottedAmount = obj.has("amount") ? obj.get("amount").getAsInt() : 32;
                                 for (int j = 0; j < dottedQty; j++) {
-                                    text.append("------------------------------").append("\n");
+                                    for (int k = 0; k < dottedAmount; k++){
+                                        text.append("-");
+                                    }
+                                    text.append("\n");
                                 }
-                                break;
-
-                            case "right":
-                            case "left":
-                                boolean isLeft = command.equals("left");
-                                JsonElement jNextVal = obj.get(isLeft ? "right" : "left");
-                                if (jNextVal != null) {
-                                    text.append(padLine(value.getAsString(), jNextVal.getAsString(), 42));
-                                } else {
-                                    mPrinter.addFeedLine(0);
-                                    alignTo(isLeft ? Printer.ALIGN_LEFT : Printer.ALIGN_RIGHT);
-                                    mPrinter.addText(value.getAsString());
-                                }
-                                text.append("\n");
-                                break;
-                            case "barcode":
-                                alignTo(Printer.ALIGN_CENTER);
-                                JsonElement jType = obj.get("type");
-                                int type = jType == null ? Printer.BARCODE_CODE93 : jType.getAsInt();
-                                if (type > 15 || type < 0) {
-                                    type = Printer.BARCODE_CODE93;
-                                }
-                                mPrinter.addTextAlign(Printer.ALIGN_CENTER);
-                                mPrinter.addBarcode(
-                                        value.getAsString(),
-                                        type,
-                                        Printer.HRI_BELOW,
-                                        Printer.FONT_A,
-                                        2,
-                                        100);
-                                text.append("\n");
                                 break;
 
                             case "image":
-                                alignTo(Printer.ALIGN_CENTER);
-                                JsonElement jSize = obj.get("size");
-                                int size = jSize == null ? 187 : jSize.getAsInt();
                                 //187, 70
                                 FutureTarget<Bitmap> futureBitmap = Glide.with(mContext)
                                         .asBitmap()
@@ -392,8 +432,74 @@ public class PrinterHelper implements ReceiveListener {
                                 text.append("\n");
                                 break;
 
+                            case "barcode":
+                                mPrinter.addBarcode(
+                                        value.getAsString(),
+                                        type,
+                                        HRI,
+                                        Printer.FONT_A,
+                                        width,
+                                        height);
+                                text.append("\n");
+                                break;
+
+                            case "qrcode":
+                                try {
+                                    Bitmap imgQrcode = null;
+                                    if (value.isJsonArray()) {
+                                        alignTo(Printer.ALIGN_CENTER);
+
+                                        JsonArray aQRcode = obj.get("qrcode").getAsJsonArray();
+                                        String sLeftQR = aQRcode.get(0) == null ? "" : aQRcode.get(0).getAsString();
+                                        BitMatrix result = new QRCodeWriter().encode(sLeftQR, BarcodeFormat.QR_CODE, size, size, null);
+                                        String sRightQR = aQRcode.get(1) == null ? "" : aQRcode.get(1).getAsString();
+                                        BitMatrix result2 = new QRCodeWriter().encode(sRightQR, BarcodeFormat.QR_CODE, size, size, null);
+
+                                        imgQrcode = BitMatrixUtils.convert2QrCodeToBitmap(result, result2, shift);
+                                    } else {
+                                        BitMatrix result = new QRCodeWriter().encode(value.getAsString(), BarcodeFormat.QR_CODE, size, size, null);
+                                        imgQrcode = BitMatrixUtils.convertToBitmap(result);
+                                    }
+                                    //Bitmap bitmap = futureBitmap.get();
+                                    mPrinter.addImage(imgQrcode, 0, 0,
+                                            imgQrcode.getWidth(),
+                                            imgQrcode.getHeight(),
+                                            Printer.COLOR_1,
+                                            Printer.MODE_MONO,
+                                            Printer.HALFTONE_DITHER,
+                                            Printer.PARAM_DEFAULT,
+                                            Printer.COMPRESS_AUTO);
+                                } catch (Exception e) {
+                                    text.append(e.getMessage());
+                                }
+                                text.append("\n");
+                                break;
+
+                            case "centered":
+                                alignTo(Printer.ALIGN_CENTER);
+                                text.append(value.getAsString()).append("\n");
+                                break;
+
+                            case "right":
+                            case "left":
+                                boolean isLeft = command.equals("left");
+                                JsonElement jNextVal = obj.get(isLeft ? "right" : "left");
+                                if (jNextVal != null) {
+                                    text.append(padLine(value.getAsString(), jNextVal.getAsString(), 42));
+                                } else {
+                                    mPrinter.addFeedLine(0);
+                                    alignTo(isLeft ? Printer.ALIGN_LEFT : Printer.ALIGN_RIGHT);
+                                    mPrinter.addText(value.getAsString());
+                                }
+                                text.append("\n");
+                                break;
                         }
                         mPrinter.addText(text.toString());
+                        // setting default
+                        alignTo(Printer.ALIGN_LEFT);
+                        mPrinter.addTextSmooth(Printer.FALSE);
+                        mPrinter.addTextStyle(Printer.FALSE, Printer.FALSE, Printer.FALSE, Printer.COLOR_1);
+                        mPrinter.addTextSize(1, 1);
                         break;
                     }
                 }

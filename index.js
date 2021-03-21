@@ -1,7 +1,10 @@
 
-import { NativeModules, Platform } from 'react-native';
+import { NativeModules, Platform, DeviceEventEmitter } from 'react-native';
+import { EventEmitter } from 'events';
 
 const { RNEpsonEposPrinter } = NativeModules;
+
+const RNZeroconf = NativeModules.RNZeroconf;
 
 const Command = {
     /**
@@ -48,6 +51,11 @@ const Command = {
      * Need the link to download the image
      */
     IMAGE: 'image',
+    /**
+     * Converts the string into a Bitmap of QR code,
+     * You can also use Array to print two QR code in a line.
+     */
+    QRCODE: 'qrcode',
 };
 
 const BarcodeType = {
@@ -69,28 +77,109 @@ const BarcodeType = {
     BARCODE_GS1_DATABAR_EXPANDED: 15,
 };
 
+const PrinterSeries = {
+    TM_M10: 0,
+    TM_M30: 1,
+    TM_M30II: 2,
+    TM_P20: 3,
+    TM_P60: 4,
+    TM_P60II: 5,
+    TM_P80: 6,
+    TM_T20: 7,
+    TM_T60: 8,
+    TM_T70: 9,
+    TM_T81: 10,
+    TM_T82: 11,
+    TM_T83: 12,
+    TM_T83III: 13,
+    TM_T88: 14,
+    TM_T90: 15,
+    TM_T100: 16,
+    TM_U220: 17,
+    TM_U330: 18,
+    TM_L90: 19,
+    TM_H6000: 20,
+}
+
+const TextLanguage = {
+    LANG_EN: 0,
+    LANG_JA: 1,
+    LANG_ZH_CN: 2,
+    LANG_ZH_TW: 3,
+    LANG_KO: 4,
+    LANG_TH: 5,
+    LANG_VI: 6,
+    LANG_MULTI: 7,
+}
+
+var targetPrinter = null;
+
+class PrinterDiscover extends EventEmitter {
+    constructor(props) {
+        super(props)
+        DeviceEventEmitter.addListener('discoverPrinter', (printer) =>{
+            if(printer.Target){
+                targetPrinter = printer.Target
+            }
+            this.emit('discover', printer)
+        });
+        DeviceEventEmitter.addListener('discoverPrinterError', (error) =>{
+            this.emit('error', error)
+        });
+    }
+    async start(){
+        await RNEpsonEposPrinter.startDiscover();
+    }
+    async stop(){
+        await RNEpsonEposPrinter.stopDiscovery();
+    }
+}
+
 export default {
     isAvailable() {
         return RNEpsonEposPrinter.isAvailable();
     },
-    printTest(ipOrMac) {
+    setPrinterClass(printerSeries, textLanguage){
+        RNEpsonEposPrinter.setPrinterClass(printerSeries, textLanguage);
+    },
+    printTest(connectionString) {
         if (Platform.OS === 'ios') {
            return new Promise((resolve, reject) => {
                 reject('Not available for iOS yet');
             });
         } else {
-            return RNEpsonEposPrinter.printTest(ipOrMac);
+            if(connectionString.toLowerCase() == 'auto'){
+                if(targetPrinter){
+                    return RNEpsonEposPrinter.printTest(targetPrinter);
+                } else {
+                    return new Promise((resolve, reject) => {
+                        reject('Did not discover any printer');
+                    });
+                }
+            } else {
+                return RNEpsonEposPrinter.printTest(connectionString);
+            }
         }
     },
-    print(qty, ipOrMac, dataToPrint) {
+    print(qty, connectionString, dataToPrint) {
         if (Platform.OS === 'ios') {
             return new Promise((resolve, reject) => {
                 reject('Not available for iOS yet');
             });
         } else {
-            return RNEpsonEposPrinter.print(qty, ipOrMac, dataToPrint);
+            if(connectionString.toLowerCase() == 'auto'){
+                if(targetPrinter){
+                    return RNEpsonEposPrinter.print(qty, targetPrinter, dataToPrint);
+                } else {
+                    return new Promise((resolve, reject) => {
+                        reject('Did not discover any printer');
+                    });
+                }
+            } else {
+                return RNEpsonEposPrinter.print(qty, connectionString, dataToPrint);
+            }
         }
     }
 };
 
-export {Command, BarcodeType};
+export {Command, BarcodeType, PrinterSeries, TextLanguage, PrinterDiscover};
