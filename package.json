@@ -20,5 +20,8 @@
   "homepage": "https://github.com/Celggar/react-native-epson-epos-printer",
   "peerDependencies": {
     "react-native": "^0.41.2"
+  },
+  "dependencies": {
+    "events": "^3.3.0"
   }
 }

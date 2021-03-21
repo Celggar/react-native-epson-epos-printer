@@ -1,7 +1,8 @@
 [
   {
     "image": "https://github.githubassets.com/images/modules/logos_page/Octocat.png",
-    "size": 277
+    "size": 277,
+    "align": "center"
   },
   {
     "line": 1
@@ -41,7 +42,8 @@
   },
   {
     "barcode": "0-0000039242",
-    "type": 9
+    "type": 9,
+    "align": "center"
   },
   {
     "text": "COMMAND"
