@@ -345,7 +345,6 @@ public class PrinterHelper implements ReceiveListener {
                         // bold of text(include of centered, right, left)
                         int useBold = obj.has("bold") ? (obj.get("bold").getAsBoolean() ? Printer.TRUE : Printer.FALSE) : Printer.FALSE;
                         int useUnderscore = obj.has("underscore") ? (obj.get("underscore").getAsBoolean() ? Printer.TRUE : Printer.FALSE) : Printer.FALSE;
-                        mPrinter.addTextStyle(Printer.FALSE, useUnderscore, useBold, Printer.COLOR_1);
 
                         int defaultWidth = command.equals("barcode") ? 2 : 1;
                         int defaultHeight = command.equals("barcode") ? 50 : 1;
@@ -353,10 +352,13 @@ public class PrinterHelper implements ReceiveListener {
                         int height = obj.has("height") ? obj.get("height").getAsInt() : defaultHeight;
                         if (command.equals("text") && (width > 15 || width < 0)) { width = 1; }
                         if (command.equals("text") && (height > 15 || height < 0)) { height = 1; }
-                        mPrinter.addTextSize(width, height);
                         if (command.equals("barcode") && (width > 6 || width < 2)) { width = 2; }
                         if (command.equals("barcode") && (height > 255 || height < 1)) { height = 50; }
-                        
+                        if (!command.equals("barcode") && !command.equals("qrcode") && !command.equals("image")){
+                            mPrinter.addTextStyle(Printer.FALSE, useUnderscore, useBold, Printer.COLOR_1);
+                            mPrinter.addTextSize(width, height);
+                        }
+
                         // image & qrcod
                         int size = !obj.has("size") ? 187 : obj.get("size").getAsInt();
                         JsonElement jShift = obj.get("shift");
